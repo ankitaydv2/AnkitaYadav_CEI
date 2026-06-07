@@ -1,9 +1,13 @@
 import streamlit as st
 import pandas as pd
+from pathlib import Path
 
 st.title("Customer Intelligence System")
 
-df = pd.read_csv("marketing_campaign.csv")
+BASE_DIR = Path(__file__).parent
+csv_path = BASE_DIR / "marketing_campaign.csv"
+
+df = pd.read_csv(csv_path, sep="\t")
 
 st.subheader("Dataset Preview")
 st.dataframe(df.head())
