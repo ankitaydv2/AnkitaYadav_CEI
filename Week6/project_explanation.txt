@@ -1,0 +1,18 @@
+Project Explanation for Viva
+
+This project is based on MNIST image denoising using a convolutional autoencoder.
+
+MNIST contains grayscale handwritten digit images from 0 to 9. First, the image pixels are normalized from 0-255 to 0-1. Then Gaussian noise is added to create noisy input images.
+
+The model is trained in this format:
+Input  : noisy MNIST image
+Target : original clean MNIST image
+
+The encoder compresses the image and learns important digit features such as edges, curves, and strokes. The decoder reconstructs a cleaner image from this compressed representation.
+
+I used convolutional layers because this is an image-based task. CNN layers preserve spatial information better than only dense layers.
+
+The Streamlit app allows the user to test the model using MNIST samples or uploaded digit images.
+
+Final conclusion:
+The model successfully learns to reduce noise from handwritten digit images and reconstructs cleaner digit outputs.
