@@ -1,27 +1,57 @@
-# 🧠 Week 6: MNIST Denoising Autoencoder
+# Week 6 - MNIST Image Denoising using Autoencoder
 
-## 📌 Project Overview
+## Project Overview
+This project builds a **Convolutional Denoising Autoencoder** for MNIST handwritten digit images. The model receives a noisy digit image as input and learns to reconstruct the clean digit image as output.
 
-This project focuses on building a **Convolutional Denoising Autoencoder** using **TensorFlow** and **Keras**. The objective is to remove random Gaussian noise from handwritten digit images in the MNIST dataset and reconstruct clean, high-quality images.
+A Streamlit web app is also included so the model can be tested interactively using MNIST samples or uploaded digit images.
 
-A **Streamlit web application** has been developed to provide an interactive interface where users can visualize the denoising process and compare noisy and reconstructed images.
+## Dataset
+Dataset used: **MNIST handwritten digit dataset**
 
----
+Resource: Kaggle MNIST Dataset  
+`https://www.kaggle.com/datasets/awsaf49/mnist-dataset`
 
-# 🎯 Objectives
+The code supports two options:
 
-- Understand the concept of Autoencoders.
-- Learn image denoising using Deep Learning.
-- Train a Convolutional Neural Network to reconstruct clean images.
-- Deploy the trained model using Streamlit.
-- Visualize the effectiveness of image reconstruction.
+1. Kaggle CSV files placed inside the `data/` folder:
+   - `data/mnist_train.csv`
+   - `data/mnist_test.csv`
 
----
+2. TensorFlow built-in MNIST loader if CSV files are not present.
 
-# 📂 Project Structure
+This keeps the project easy to run while still staying aligned with the MNIST dataset requirement.
 
-```
-Week6_MNIST_Denoising_Autoencoder_Final/
+## Why Autoencoder?
+An autoencoder is useful when the goal is to reconstruct data. For denoising, the input is a corrupted/noisy image and the target output is the original clean image.
+
+## Model Architecture
+The project uses a simple convolutional autoencoder:
+
+### Encoder
+- Conv2D layer
+- MaxPooling2D layer
+- Conv2D layer
+- MaxPooling2D layer
+
+### Decoder
+- Conv2D layer
+- UpSampling2D layer
+- Conv2D layer
+- UpSampling2D layer
+- Final Conv2D layer with sigmoid activation
+
+## Workflow
+1. Load MNIST dataset
+2. Normalize pixel values between 0 and 1
+3. Add Gaussian noise to the images
+4. Train the autoencoder
+5. Save the trained model
+6. Generate output visualizations
+7. Deploy the trained model using Streamlit
+
+## Project Structure
+```text
+Week6_MNIST_Denoising_Autoencoder/
 │
 ├── app.py
 ├── train_model.py
@@ -29,159 +59,56 @@ Week6_MNIST_Denoising_Autoencoder_Final/
 ├── requirements.txt
 ├── README.md
 ├── project_explanation.txt
-├── .gitignore
+│
+├── data/
+│   └── optional Kaggle CSV files
 │
 ├── models/
 │   └── mnist_denoising_autoencoder.keras
 │
 └── outputs/
-    └── sample_predictions.png
+    ├── training_loss.png
+    └── denoising_results.png
 ```
 
----
-
-# 🛠️ Technologies Used
-
-| Technology | Purpose |
-|------------|---------|
-| Python | Programming Language |
-| TensorFlow | Deep Learning Framework |
-| Keras | Neural Network API |
-| NumPy | Numerical Operations |
-| Matplotlib | Data Visualization |
-| Streamlit | Interactive Web Application |
-
----
-
-# 📊 Dataset Information
-
-**Dataset:** MNIST Handwritten Digits
-
-- Total Training Images: **60,000**
-- Total Testing Images: **10,000**
-- Image Size: **28 × 28 Pixels**
-- Color Mode: Grayscale
-- Number of Classes: **10 (Digits 0–9)**
-
-To train the model, Gaussian noise is added to the original images. The autoencoder learns to reconstruct the original clean image from the noisy version.
-
----
-
-# 🧠 Model Architecture
-
-The model follows an **Encoder-Decoder** architecture.
-
-### Encoder
-- Input Layer
-- Convolution Layer (32 Filters)
-- Max Pooling
-- Convolution Layer (16 Filters)
-- Max Pooling
-
-The encoder compresses the noisy image into a compact latent representation.
-
-### Decoder
-- Convolution Layer
-- Up Sampling
-- Convolution Layer
-- Up Sampling
-- Output Layer with Sigmoid Activation
-
-The decoder reconstructs the original image from the compressed representation.
-
----
-
-# ⚙️ Installation
-
-### Clone the Repository
-
-```bash
-git clone https://github.com/ankitaydv2/AnkitaYadav_CEI.git
-```
-
-### Navigate to the Project
-
-```bash
-cd Week6_MNIST_Denoising_Autoencoder_Final
-```
-
-### Install Dependencies
+## How to Run Locally
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-# 🚀 Running the Project
-
-### Train the Model
+Train the model:
 
 ```bash
 python train_model.py
 ```
 
-This will train the denoising autoencoder and save the trained model in the `models` directory.
-
----
-
-### Launch the Streamlit Application
+Run the Streamlit app:
 
 ```bash
 streamlit run app.py
 ```
 
-The application will open in your default browser, allowing you to interact with the trained model.
+## Streamlit Deployment
+1. Push this folder to GitHub.
+2. Go to Streamlit Cloud.
+3. Click **New app**.
+4. Select your GitHub repository.
+5. Set the main file path as:
 
----
+```text
+Week6_MNIST_Denoising_Autoencoder/app.py
+```
 
-# 📈 Expected Output
+6. Click **Deploy**.
 
-The application demonstrates:
+## Expected Output
+The output image contains three rows:
 
-- Original MNIST Image
-- Noisy Image
-- Denoised (Reconstructed) Image
+- Original clean digit
+- Noisy digit
+- Denoised digit reconstructed by the model
 
-The reconstructed output should closely resemble the original handwritten digit while effectively removing the added noise.
-
----
-
-# 💡 Key Learning Outcomes
-
-Through this project, the following concepts were explored:
-
-- Image Denoising
-- Autoencoders
-- Convolutional Neural Networks (CNNs)
-- Encoder-Decoder Architecture
-- TensorFlow & Keras
-- Streamlit Deployment
-- Model Saving and Loading
-- Image Reconstruction
-
----
-
-# 🔮 Future Enhancements
-
-- Support for custom image uploads.
-- Train on larger and more complex datasets.
-- Experiment with different types of image noise.
-- Improve reconstruction quality using deeper architectures.
-- Deploy the application on Streamlit Community Cloud.
-
----
-
-# 👩‍💻 Author
-
-**Ankita Yadav**
-
-B.Tech – Computer Science Engineering
-
-GitHub: https://github.com/ankitaydv2
-
----
-
-# ⭐ Acknowledgement
-
-This project was developed as part of the **Week 6 Assignment** to understand and implement **Image Denoising using Convolutional Autoencoders**. It demonstrates practical applications of Deep Learning in image restoration and reconstruction.
+## Conclusion
+The convolutional autoencoder learns important digit features from noisy images and reconstructs cleaner handwritten digits. This shows how autoencoders can be used for image denoising and image reconstruction tasks.
