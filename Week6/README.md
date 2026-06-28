@@ -110,5 +110,11 @@ The output image contains three rows:
 - Noisy digit
 - Denoised digit reconstructed by the model
 
+## Output Images : 
+<img width="2880" height="1704" alt="image" src="https://github.com/user-attachments/assets/deb1ab94-a9a4-4068-8801-ffcedbb82a79" />
+<img width="2880" height="1704" alt="image" src="https://github.com/user-attachments/assets/f9ca254c-45cb-4e21-8c8e-e83e2248ea5a" />
+
+
+
 ## Conclusion
 The convolutional autoencoder learns important digit features from noisy images and reconstructs cleaner handwritten digits. This shows how autoencoders can be used for image denoising and image reconstruction tasks.
