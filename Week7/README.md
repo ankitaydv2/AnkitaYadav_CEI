@@ -96,6 +96,11 @@ RecursiveCharacterTextSplitter is used to split large PDF content into smaller a
 
 HuggingFace embeddings are used to convert text chunks into numerical vector representations.
 
+###Screenshorts :
+<img width="2880" height="1704" alt="Screenshot 2026-07-05 211828" src="https://github.com/user-attachments/assets/2fb801e5-2d50-4574-9096-e152ac02ce25" /><img width="2880" height="1704" alt="Screenshot 2026-07-05 212125" src="https://github.com/user-attachments/assets/96e1e389-bc94-4a2e-9469-aed5374263a1" />
+
+
+
 ### Sentence Transformers
 
 The Sentence Transformer model is used to generate semantic embeddings from text.
