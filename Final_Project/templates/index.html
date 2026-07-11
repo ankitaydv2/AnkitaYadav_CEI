@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Item Demand Forecasting</title>
+    <meta name="description" content="Demand forecasting dashboard for 50 items across 10 stores using LightGBM.">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+            background: #f5f5f4;
+            color: #1c1917;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        /* --- nav --- */
+        nav {
+            background: #fff;
+            border-bottom: 1px solid #e7e5e4;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        nav h1 { font-size: 16px; font-weight: 600; color: #292524; }
+        nav .tag {
+            font-size: 11px;
+            background: #ecfdf5;
+            color: #065f46;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        /* --- layout --- */
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 24px 40px; }
+
+        /* --- stats row --- */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 800px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+        .stat-box {
+            background: #fff;
+            border: 1px solid #e7e5e4;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .stat-box .label {
+            font-size: 11px;
+            color: #78716c;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-box .val {
+            font-size: 22px;
+            font-weight: 600;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .stat-box .sub { font-size: 11px; color: #a8a29e; margin-top: 2px; }
+        .val.green { color: #16a34a; }
+
+        /* --- section --- */
+        .section-head {
+            font-size: 14px;
+            font-weight: 600;
+            color: #44403c;
+            margin: 28px 0 12px;
+        }
+
+        /* --- grid --- */
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        @media (max-width: 800px) { .row { grid-template-columns: 1fr; } }
+        .card {
+            background: #fff;
+            border: 1px solid #e7e5e4;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .card h3 {
+            font-size: 13px;
+            font-weight: 500;
+            color: #57534e;
+            margin-bottom: 12px;
+        }
+        .card.wide { grid-column: 1 / -1; }
+
+        /* --- explorer --- */
+        .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+        .controls label { font-size: 12px; color: #78716c; font-weight: 500; }
+        .controls select {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 13px;
+            padding: 5px 8px;
+            border: 1px solid #d6d3d1;
+            border-radius: 6px;
+            background: #fff;
+            color: #1c1917;
+        }
+        .controls select:focus { outline: 2px solid #3b82f6; outline-offset: -1px; }
+
+        /* --- table --- */
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #78716c;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 8px 10px;
+            border-bottom: 2px solid #e7e5e4;
+        }
+        td {
+            padding: 7px 10px;
+            font-size: 13px;
+            border-bottom: 1px solid #f5f5f4;
+        }
+        tr:hover td { background: #fafaf9; }
+        .bar-wrap { width: 100%; background: #f5f5f4; border-radius: 3px; height: 8px; }
+        .bar-fill { height: 8px; border-radius: 3px; }
+        .fill-blue { background: #3b82f6; }
+        .fill-green { background: #16a34a; }
+        .fill-amber { background: #d97706; }
+        .fill-purple { background: #7c3aed; }
+        .fill-red { background: #dc2626; }
+        .tag-sm {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 500;
+            padding: 1px 6px;
+            border-radius: 3px;
+        }
+        .tag-lag { background: #dbeafe; color: #1d4ed8; }
+        .tag-rolling { background: #ede9fe; color: #6d28d9; }
+        .tag-calendar { background: #fef3c7; color: #92400e; }
+        .tag-encoding { background: #d1fae5; color: #065f46; }
+        .tag-identifier { background: #fee2e2; color: #991b1b; }
+
+        /* predictions */
+        .scroll-box { max-height: 350px; overflow-y: auto; }
+        .mono { font-family: 'IBM Plex Mono', monospace; }
+
+        /* footer */
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #a8a29e;
+            border-top: 1px solid #e7e5e4;
+        }
+        footer a { color: #3b82f6; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h1>Store Item Demand Forecasting</h1>
+    <span class="tag">LightGBM · SMAPE 12.32%</span>
+</nav>
+
+<div class="wrap">
+
+    <!-- KPIs -->
+    <div class="stats" id="statsRow">
+        <div class="stat-box">
+            <div class="label">Validation SMAPE</div>
+            <div class="val green" id="smapeVal">—</div>
+            <div class="sub">Oct–Dec 2017 holdout</div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Training Data</div>
+            <div class="val" id="trainVal">—</div>
+            <div class="sub" id="trainSub"></div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Test Predictions</div>
+            <div class="val" id="testVal">—</div>
+            <div class="sub">Jan–Mar 2018</div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Series</div>
+            <div class="val" id="seriesVal">—</div>
+            <div class="sub">store × item</div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Features</div>
+            <div class="val" id="featVal">—</div>
+            <div class="sub" id="featSub"></div>
+        </div>
+    </div>
+
+    <!-- seasonality -->
+    <div class="section-head">Seasonality</div>
+    <div class="row">
+        <div class="card">
+            <h3>Average daily sales by month</h3>
+            <canvas id="monthChart" height="220"></canvas>
+        </div>
+        <div class="card">
+            <h3>Average daily sales by day of week</h3>
+            <canvas id="dowChart" height="220"></canvas>
+        </div>
+    </div>
+
+    <!-- feature importance -->
+    <div class="section-head">Feature Importance</div>
+    <div class="row">
+        <div class="card">
+            <h3>Top 15 features (split count)</h3>
+            <canvas id="featChart" height="300"></canvas>
+        </div>
+        <div class="card">
+            <h3>Breakdown</h3>
+            <div id="featTable"></div>
+        </div>
+    </div>
+
+    <!-- explorer -->
+    <div class="section-head">Time Series Explorer</div>
+    <div class="card wide">
+        <div class="controls">
+            <label for="selStore">Store</label>
+            <select id="selStore"></select>
+            <label for="selItem">Item</label>
+            <select id="selItem"></select>
+        </div>
+        <canvas id="tsChart" height="160"></canvas>
+    </div>
+
+    <!-- store + distribution -->
+    <div class="section-head">Store Overview & Prediction Distribution</div>
+    <div class="row">
+        <div class="card">
+            <h3>Average sales per store</h3>
+            <canvas id="storeChart" height="220"></canvas>
+        </div>
+        <div class="card">
+            <h3>Distribution of predicted values</h3>
+            <canvas id="histChart" height="220"></canvas>
+        </div>
+    </div>
+
+    <!-- predictions table -->
+    <div class="section-head">Sample Predictions</div>
+    <div class="card">
+        <h3>Store 1, Item 1 — first 90 days</h3>
+        <div class="scroll-box" id="predBox"></div>
+    </div>
+</div>
+
+<footer>
+    Kaggle: <a href="https://www.kaggle.com/competitions/demand-forecasting-kernels-only" target="_blank">Store Item Demand Forecasting Challenge</a>
+    &middot; Built with Python, LightGBM, Flask
+</footer>
+
+<script>
+Chart.defaults.color = '#78716c';
+Chart.defaults.borderColor = '#e7e5e4';
+Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
+Chart.defaults.font.size = 11;
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let charts = {};
+
+async function get(url) { return (await fetch(url)).json(); }
+
+// ---- KPIs ----
+async function loadKPIs() {
+    const d = await get('/api/summary');
+    document.getElementById('smapeVal').textContent = d.model.validation_smape + '%';
+    document.getElementById('trainVal').textContent = (d.dataset.train_rows/1000|0) + 'K rows';
+    document.getElementById('trainSub').textContent = d.dataset.date_range_train;
+    document.getElementById('testVal').textContent = (d.dataset.test_rows/1000|0) + 'K rows';
+    document.getElementById('seriesVal').textContent = d.dataset.num_stores + ' × ' + d.dataset.num_items;
+    document.getElementById('featVal').textContent = d.model.num_features;
+    document.getElementById('featSub').textContent = d.model.algorithm;
+    return d;
+}
+
+// ---- monthly chart ----
+async function loadMonthly() {
+    const d = await get('/api/train_stats');
+    const years = [...new Set(d.monthly_by_year.map(r => r.year))];
+    const sets = years.map((y, i) => {
+        const pts = d.monthly_by_year.filter(r => r.year === y);
+        const c = ['#94a3b8','#64748b','#475569','#334155','#1e293b'][i] || '#334155';
+        return {
+            label: ''+y, data: pts.map(r => +r.avg_sales.toFixed(1)),
+            borderColor: c, backgroundColor: c+'18',
+            borderWidth: i === years.length-1 ? 2.5 : 1.2,
+            pointRadius: i === years.length-1 ? 3 : 0,
+            tension: 0.35,
+        };
+    });
+    charts.month = new Chart(document.getElementById('monthChart'), {
+        type: 'line',
+        data: { labels: MONTHS, datasets: sets },
+        options: { responsive:true, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, padding:8 } } },
+            scales:{ y:{ title:{ display:true, text:'Sales' } } } }
+    });
+    return d;
+}
+
+// ---- day of week ----
+function loadDOW(d) {
+    const cols = d.weekly.map(r => r.dayofweek >= 5 ? '#dc2626' : '#3b82f6');
+    charts.dow = new Chart(document.getElementById('dowChart'), {
+        type: 'bar',
+        data: { labels: d.weekly.map(r => r.day_name),
+            datasets: [{ data: d.weekly.map(r => +r.avg_sales.toFixed(1)),
+                backgroundColor: cols.map(c=>c+'44'), borderColor: cols, borderWidth: 1.5, borderRadius: 4 }] },
+        options: { responsive:true, plugins:{ legend:{ display:false } },
+            scales:{ y:{ beginAtZero:false, title:{ display:true, text:'Sales' } } } }
+    });
+}
+
+// ---- features ----
+function loadFeatures(sum) {
+    const feats = sum.feature_importance;
+    const catCol = { identifier:'#dc2626', lag:'#3b82f6', calendar:'#d97706', encoding:'#16a34a', rolling:'#7c3aed' };
+    const catFill = { identifier:'fill-red', lag:'fill-blue', calendar:'fill-amber', encoding:'fill-green', rolling:'fill-purple' };
+    const catTag = { identifier:'tag-identifier', lag:'tag-lag', calendar:'tag-calendar', encoding:'tag-encoding', rolling:'tag-rolling' };
+
+    charts.feat = new Chart(document.getElementById('featChart'), {
+        type: 'bar',
+        data: { labels: feats.map(f=>f.feature),
+            datasets:[{ data: feats.map(f=>f.importance),
+                backgroundColor: feats.map(f=> catCol[f.category]+'33'),
+                borderColor: feats.map(f=> catCol[f.category]),
+                borderWidth: 1.5, borderRadius: 3 }] },
+        options: { indexAxis:'y', responsive:true, plugins:{ legend:{ display:false } },
+            scales:{ x:{ title:{ display:true, text:'Splits' } } } }
+    });
+
+    const mx = feats[0].importance;
+    document.getElementById('featTable').innerHTML = `<table>
+        <thead><tr><th>#</th><th>Feature</th><th>Type</th><th>Splits</th><th></th></tr></thead>
+        <tbody>${feats.map((f,i)=>`<tr>
+            <td style="color:#a8a29e">${i+1}</td>
+            <td class="mono" style="font-size:12px">${f.feature}</td>
+            <td><span class="tag-sm ${catTag[f.category]}">${f.category}</span></td>
+            <td class="mono">${f.importance.toLocaleString()}</td>
+            <td style="width:30%"><div class="bar-wrap"><div class="bar-fill ${catFill[f.category]}" style="width:${(f.importance/mx*100)|0}%"></div></div></td>
+        </tr>`).join('')}</tbody></table>`;
+}
+
+// ---- time series explorer ----
+async function loadTS(store, item) {
+    const d = await get(`/api/timeseries?store=${store}&item=${item}`);
+    if (charts.ts) charts.ts.destroy();
+    charts.ts = new Chart(document.getElementById('tsChart'), {
+        type: 'line',
+        data: { labels: [...d.history.dates, ...d.forecast.dates],
+            datasets: [
+                { label:'Historical', data:[...d.history.sales, ...Array(d.forecast.dates.length).fill(null)],
+                  borderColor:'#64748b', borderWidth:1, pointRadius:0 },
+                { label:'Forecast', data:[...Array(d.history.dates.length).fill(null), ...d.forecast.sales],
+                  borderColor:'#16a34a', backgroundColor:'#16a34a22', borderWidth:2, pointRadius:1.5, fill:true }
+            ] },
+        options: { responsive:true,
+            plugins:{ legend:{ position:'top', labels:{ boxWidth:10 } } },
+            scales:{ x:{ ticks:{ maxTicksLimit:10, maxRotation:0 } }, y:{ title:{ display:true, text:'Sales' } } } }
+    });
+}
+
+function initExplorer() {
+    const ss = document.getElementById('selStore'), si = document.getElementById('selItem');
+    for (let s=1; s<=10; s++) { const o=document.createElement('option'); o.value=s; o.text='Store '+s; ss.add(o); }
+    for (let i=1; i<=50; i++) { const o=document.createElement('option'); o.value=i; o.text='Item '+i; si.add(o); }
+    const go = () => loadTS(ss.value, si.value);
+    ss.onchange = go; si.onchange = go; go();
+}
+
+// ---- store chart ----
+function loadStores(d) {
+    charts.store = new Chart(document.getElementById('storeChart'), {
+        type: 'bar',
+        data: { labels: d.store_avg.map(r=>'S'+r.store),
+            datasets:[{ data: d.store_avg.map(r=>r.avg_sales),
+                backgroundColor:'#3b82f633', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4 }] },
+        options: { responsive:true, plugins:{ legend:{ display:false } },
+            scales:{ y:{ beginAtZero:false, title:{ display:true, text:'Avg Sales' } } } }
+    });
+}
+
+// ---- histogram ----
+async function loadHist() {
+    const d = await get('/api/predictions?store=1&item=1');
+    const vals = d.data.map(r=>r.sales);
+    const lo = Math.floor(Math.min(...vals)), hi = Math.ceil(Math.max(...vals));
+    const n = 15, sz = (hi-lo)/n, bins = Array(n).fill(0), labels = [];
+    for (let i=0; i<n; i++) { labels.push((lo+i*sz)|0); vals.forEach(v=>{ if(v>=lo+i*sz && v<lo+(i+1)*sz) bins[i]++; }); }
+    charts.hist = new Chart(document.getElementById('histChart'), {
+        type: 'bar',
+        data: { labels, datasets:[{ data:bins, backgroundColor:'#7c3aed33', borderColor:'#7c3aed', borderWidth:1.5, borderRadius:3 }] },
+        options: { responsive:true, plugins:{ legend:{ display:false } },
+            scales:{ x:{ title:{ display:true, text:'Predicted Sales' } }, y:{ title:{ display:true, text:'Count' } } } }
+    });
+}
+
+// ---- predictions table ----
+async function loadPred() {
+    const d = await get('/api/predictions?store=1&item=1');
+    const rows = d.data.slice(0, 90);
+    document.getElementById('predBox').innerHTML = `<table>
+        <thead><tr><th>ID</th><th>Date</th><th>Store</th><th>Item</th><th>Predicted Sales</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+            <td class="mono" style="color:#a8a29e">${r.id}</td>
+            <td>${r.date}</td>
+            <td>${r.store}</td>
+            <td>${r.item}</td>
+            <td class="mono" style="color:#16a34a;font-weight:500">${r.sales.toFixed(2)}</td>
+        </tr>`).join('')}</tbody></table>`;
+}
+
+// ---- init ----
+(async () => {
+    const [sum, ts] = await Promise.all([loadKPIs(), loadMonthly()]);
+    loadDOW(ts);
+    loadFeatures(sum);
+    loadStores(ts);
+    initExplorer();
+    loadHist();
+    loadPred();
+})();
+</script>
+</body>
+</html>
