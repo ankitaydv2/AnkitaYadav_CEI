@@ -238,19 +238,8 @@ Run `python eda.py` to generate the following plots in `output/plots/`:
 ![alt text](image-3.png)
 ![alt text](image-4.png)
 
-## Run the Web Application
-
-Start the Flask server:
-
-```bash
-python app.py
-```
-
-Then open your browser and visit:
-
-```
-http://localhost:5000/
-```
+## Live Demo : 
+Live Application : https://store-item-demand-forecasting.onrender.com/
 
 ---
 
